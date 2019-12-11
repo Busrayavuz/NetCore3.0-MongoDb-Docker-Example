@@ -1,0 +1,22 @@
+FROM mcr.microsoft.com/dotnet/core/aspnet:3.0-buster-slim AS base
+WORKDIR /app
+EXPOSE 80
+EXPOSE 443
+
+FROM mcr.microsoft.com/dotnet/core/sdk:3.0-buster AS build
+WORKDIR /src
+COPY ["ToDo.WebApi/ToDo.WebApi.csproj", "ToDo.WebApi/"]
+COPY ["ToDo.Data/ToDo.Data.csproj", "ToDo.Data/"]
+COPY ["ToDo.Core/ToDo.Entities.csproj", "ToDo.Core/"]
+RUN dotnet restore "ToDo.WebApi/ToDo.WebApi.csproj"
+COPY . .
+WORKDIR "/src/ToDo.WebApi"
+RUN dotnet build "ToDo.WebApi.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "ToDo.WebApi.csproj" -c Release -o /app/publish
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "ToDo.WebApi.dll"]
